@@ -341,75 +341,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </View>
         </View>
 
-        {/* Punchy Hero Headline Showcase */}
-        <View
-          style={[
-            styles.heroShowcase,
-            {
-              backgroundColor: colors.surfaceRaised,
-              borderColor: colors.border,
-              borderRadius: borderRadius.xl,
-            },
-          ]}
-        >
-          {/* Top Pill Accent */}
-          <View style={styles.heroPillRow}>
-            <View
-              style={[
-                styles.heroTagPill,
-                {
-                  backgroundColor: isDark ? 'rgba(108, 92, 231, 0.2)' : '#EDE8F5',
-                  borderColor: isDark ? 'rgba(142, 125, 255, 0.3)' : 'rgba(108, 92, 231, 0.2)',
-                },
-              ]}
-            >
-              <Ionicons name="flash" size={11} color={colors.primary} style={{ marginRight: 4 }} />
-              <Text style={[typography.monoLabel, { color: colors.primary, fontSize: 9.5, letterSpacing: 1.2 }]}>
-                INSTANT AUTO-DOWNLOAD
-              </Text>
-            </View>
-            <Text style={[typography.monoCaption, { color: colors.textMuted, fontSize: 9, letterSpacing: 0.8 }]}>
-              MAX BITRATE
-            </Text>
-          </View>
-
-          {/* Impactful Hero Title */}
-          <Text style={[typography.hero, { color: colors.text, fontSize: 30, letterSpacing: -0.6, marginTop: spacing.xs + 2 }]}>
-            DROP A <Text style={{ color: colors.primary }}>LINK.</Text>
+        {/* Platform Supported Badges (Clean Icon-Only Row) */}
+        <View style={[styles.platformRow, { marginTop: spacing.md, marginBottom: 2 }]}>
+          <Text style={[typography.monoLabel, { color: colors.textMuted, marginRight: spacing.sm, fontSize: 10 }]}>
+            SUPPORTED:
           </Text>
-
-          <Text style={[typography.body, { color: colors.textSecondary, marginTop: 4, lineHeight: 19 }]}>
-            {"Paste any public post or reel. We'll automatically grab the highest quality."}
-          </Text>
-
-          {/* Integrated Supported Platform Dock */}
-          <View
-            style={[
-              styles.supportedDock,
-              {
-                backgroundColor: colors.inset,
-                borderColor: colors.border,
-                borderRadius: borderRadius.md,
-              },
-            ]}
-          >
-            <Text style={[typography.monoLabel, { color: colors.textMuted, fontSize: 9.5, letterSpacing: 1 }]}>
-              SUPPORTED:
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 7, alignItems: 'center' }}>
-              <Badge platform="instagram" variant="platform" iconOnly />
-              <Badge platform="x" variant="platform" iconOnly />
-              <Badge platform="youtube" variant="platform" iconOnly />
-              <Badge platform="facebook" variant="platform" iconOnly />
-            </View>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Badge platform="instagram" variant="platform" iconOnly />
+            <Badge platform="x" variant="platform" iconOnly />
+            <Badge platform="youtube" variant="platform" iconOnly />
+            <Badge platform="facebook" variant="platform" iconOnly />
           </View>
         </View>
 
         {/* Main URL Input Card */}
-        <ClayCard level="medium" style={{ marginTop: spacing.md }}>
+        <ClayCard level="medium" style={{ marginTop: spacing.sm }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs }}>
-            <Text style={[typography.monoLabel, { color: colors.text, fontSize: 12, letterSpacing: 1.2 }]}>
-              PASTE YOUR LINK HERE
+            <Text style={[typography.hero, { color: colors.text, fontSize: 28, letterSpacing: -0.6 }]}>
+              DROP A <Text style={{ color: colors.primary }}>LINK.</Text>
             </Text>
             {metadata && (
               <Pressable onPress={handleClear} hitSlop={8}>
@@ -686,33 +635,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  heroShowcase: {
-    padding: 16,
-    marginTop: 10,
-    marginBottom: 6,
-    borderWidth: 1,
-  },
-  heroPillRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  heroTagPill: {
+  platformRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  supportedDock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
+    marginBottom: 8,
+    flexWrap: 'wrap',
   },
   clipboardNotice: {
     flexDirection: 'row',
