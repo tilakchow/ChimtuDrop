@@ -46,6 +46,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "server": "ts-node --project server/tsconfig.json server/src/index.ts",
+    "server:build": "tsc --project server/tsconfig.json",
+    "server:start": "node server/dist/index.js",
     "backend": "backend\\venv\\Scripts\\uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload",
     "backend:test": "backend\\venv\\Scripts\\pytest backend/tests/test_api.py -v"
   },
