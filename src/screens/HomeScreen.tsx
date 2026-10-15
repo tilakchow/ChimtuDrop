@@ -297,27 +297,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 resizeMode="contain"
               />
             </View>
-            <View style={{ marginLeft: spacing.sm + 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[typography.title1, { color: colors.text, fontSize: 18 }]}>
-                  CHIMTU <Text style={{ color: colors.primary }}>DROP.</Text>
-                </Text>
-                <View
-                  style={[
-                    styles.liveIndicator,
-                    {
-                      backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : '#E6F8F2',
-                      borderColor: isDark ? 'rgba(52, 211, 153, 0.3)' : 'rgba(16, 185, 129, 0.3)',
-                    },
-                  ]}
-                >
-                  <View style={[styles.liveDot, { backgroundColor: colors.success }]} />
-                  <Text style={[typography.monoCaption, { color: colors.success, fontSize: 8.5, letterSpacing: 0.8 }]}>
-                    READY
-                  </Text>
-                </View>
-              </View>
-              <Text style={[typography.monoCaption, { color: colors.textSecondary, fontSize: 9.5, letterSpacing: 1.1, marginTop: 1 }]}>
+            <View style={{ marginLeft: spacing.md, flex: 1, justifyContent: 'center' }}>
+              <Text style={[typography.title1, { color: colors.text, fontSize: 20, letterSpacing: -0.4 }]}>
+                CHIMTU <Text style={{ color: colors.primary }}>DROP.</Text>
+              </Text>
+              <Text style={[typography.monoCaption, { color: colors.textSecondary, fontSize: 10, letterSpacing: 1.2, marginTop: 2 }]}>
                 SAVE FROM THE SCROLL
               </Text>
 
@@ -593,42 +577,29 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   logoWrapper: {
-    width: 62,
-    height: 62,
+    width: 60,
+    height: 60,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
   },
   logoMascot: {
-    width: 50,
-    height: 50,
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginLeft: 8,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
+    width: 48,
+    height: 48,
   },
   topActions: {
-    flexDirection: 'row',
+    marginLeft: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
