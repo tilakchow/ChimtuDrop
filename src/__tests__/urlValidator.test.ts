@@ -71,6 +71,52 @@ describe('URL Validator and Platform Detection', () => {
     });
   });
 
+  describe('YouTube link detection and canonicalization', () => {
+    it('detects standard youtube watch links', () => {
+      const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      const result = validateMediaUrl(url);
+      expect(result.isValid).toBe(true);
+      expect(result.platform).toBe('youtube');
+      expect(result.mediaId).toBe('dQw4w9WgXcQ');
+      expect(result.canonicalUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    });
+
+    it('detects youtu.be short links', () => {
+      const url = 'https://youtu.be/dQw4w9WgXcQ?t=10';
+      const result = validateMediaUrl(url);
+      expect(result.isValid).toBe(true);
+      expect(result.platform).toBe('youtube');
+      expect(result.mediaId).toBe('dQw4w9WgXcQ');
+    });
+
+    it('detects YouTube Shorts links', () => {
+      const url = 'https://www.youtube.com/shorts/5kM-i30jVls';
+      const result = validateMediaUrl(url);
+      expect(result.isValid).toBe(true);
+      expect(result.platform).toBe('youtube');
+      expect(result.mediaId).toBe('5kM-i30jVls');
+      expect(result.canonicalUrl).toBe('https://www.youtube.com/shorts/5kM-i30jVls');
+    });
+  });
+
+  describe('Facebook link detection and canonicalization', () => {
+    it('detects Facebook reel links', () => {
+      const url = 'https://www.facebook.com/reel/123456789012345/';
+      const result = validateMediaUrl(url);
+      expect(result.isValid).toBe(true);
+      expect(result.platform).toBe('facebook');
+      expect(result.mediaId).toBe('123456789012345');
+    });
+
+    it('detects fb.watch links', () => {
+      const url = 'https://fb.watch/abcd1234ef/';
+      const result = validateMediaUrl(url);
+      expect(result.isValid).toBe(true);
+      expect(result.platform).toBe('facebook');
+      expect(result.mediaId).toBe('abcd1234ef');
+    });
+  });
+
   describe('Direct media link detection', () => {
     it('detects direct MP4 video URLs', () => {
       const url = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
@@ -91,7 +137,7 @@ describe('URL Validator and Platform Detection', () => {
   describe('Filename validation and sanitization', () => {
     it('creates safe filenames removing illegal filesystem characters', () => {
       const safeName = generateSafeFileName('Amazing Reel! #viral / test <wow>', 'instagram', 'mp4');
-      expect(safeName).toMatch(/^clipdrop_amazing_reel_viral_test_wow_[0-9]+\.mp4$/);
+      expect(safeName).toMatch(/^amazing_reel_viral_test_wow_[0-9]+\.mp4$/);
       expect(safeName).not.toContain('!');
       expect(safeName).not.toContain('#');
       expect(safeName).not.toContain('/');
@@ -100,7 +146,7 @@ describe('URL Validator and Platform Detection', () => {
 
     it('falls back to platform defaults when title contains only invalid characters', () => {
       const safeName = generateSafeFileName('!!!@@@###$$$', 'x', 'mp4');
-      expect(safeName).toMatch(/^clipdrop_x_media_[0-9]+\.mp4$/);
+      expect(safeName).toMatch(/^x_media_[0-9]+\.mp4$/);
     });
   });
 });

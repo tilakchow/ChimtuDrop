@@ -138,11 +138,10 @@ export const ClayButton: React.FC<ClayButtonProps> = ({
           {icon && iconPosition === 'left' && <View style={{ marginRight: spacing.sm }}>{icon}</View>}
           <Text
             style={[
-              typography.headline,
+              size === 'sm' ? typography.buttonSm : typography.button,
               {
                 color: getTextColor(),
-                fontSize: size === 'sm' ? 13 : size === 'lg' ? 16 : 15,
-                fontWeight: '600',
+                fontSize: size === 'sm' ? 12 : size === 'lg' ? 15 : 14,
               },
               textStyle,
             ]}

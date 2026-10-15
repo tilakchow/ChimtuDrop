@@ -10,6 +10,7 @@ interface BadgeProps {
   label?: string;
   variant?: 'platform' | 'mediaType' | 'status';
   status?: 'completed' | 'failed' | 'downloading';
+  iconOnly?: boolean;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -18,6 +19,7 @@ export const Badge: React.FC<BadgeProps> = ({
   label,
   variant = 'platform',
   status,
+  iconOnly = false,
 }) => {
   const { colors, typography, isDark } = useTheme();
 
@@ -36,13 +38,25 @@ export const Badge: React.FC<BadgeProps> = ({
       bg = colors.platformXBg;
       text = colors.platformX;
       icon = 'logo-twitter';
-      name = 'X (Twitter)';
+      name = 'X';
+    } else if (platform === 'youtube') {
+      bg = isDark ? 'rgba(255, 0, 0, 0.2)' : '#FFEBEE';
+      text = '#E50914';
+      icon = 'logo-youtube';
+      name = 'YouTube';
+    } else if (platform === 'facebook') {
+      bg = isDark ? 'rgba(24, 119, 242, 0.2)' : '#E7F3FF';
+      text = '#1877F2';
+      icon = 'logo-facebook';
+      name = 'Facebook';
     }
 
     return (
-      <View style={[styles.badge, { backgroundColor: bg }]}>
-        <Ionicons name={icon} size={12} color={text} style={{ marginRight: 4 }} />
-        <Text style={[typography.captionBold, { color: text, fontSize: 11 }]}>{label || name}</Text>
+      <View style={[styles.badge, iconOnly && styles.badgeIconOnly, { backgroundColor: bg }]}>
+        <Ionicons name={icon} size={iconOnly ? 14 : 11} color={text} style={iconOnly ? undefined : { marginRight: 4 }} />
+        {!iconOnly && (
+          <Text style={[typography.monoLabel, { color: text, fontSize: 10 }]}>{label || name}</Text>
+        )}
       </View>
     );
   }
@@ -63,15 +77,18 @@ export const Badge: React.FC<BadgeProps> = ({
       <View
         style={[
           styles.badge,
+          iconOnly && styles.badgeIconOnly,
           {
             backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(108, 92, 231, 0.08)',
           },
         ]}
       >
-        <Ionicons name={icon} size={12} color={colors.primary} style={{ marginRight: 4 }} />
-        <Text style={[typography.captionBold, { color: colors.primary, fontSize: 11 }]}>
-          {label || title}
-        </Text>
+        <Ionicons name={icon} size={iconOnly ? 14 : 11} color={colors.primary} style={iconOnly ? undefined : { marginRight: 4 }} />
+        {!iconOnly && (
+          <Text style={[typography.monoLabel, { color: colors.primary, fontSize: 10 }]}>
+            {label || title}
+          </Text>
+        )}
       </View>
     );
   }
@@ -84,7 +101,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
     return (
       <View style={[styles.badge, { backgroundColor: bg }]}>
-        <Text style={[typography.captionBold, { color, fontSize: 11, textTransform: 'capitalize' }]}>
+        <Text style={[typography.monoLabel, { color, fontSize: 10 }]}>
           {status}
         </Text>
       </View>
@@ -102,5 +119,14 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
     alignSelf: 'flex-start',
+  },
+  badgeIconOnly: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 32,
+    minHeight: 28,
   },
 });

@@ -12,4 +12,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'system',
   autoSaveToGallery: true,
   preferredVideoQuality: 'high',
+  customBackendEndpoint: 'http://192.168.88.6:8000',
 };

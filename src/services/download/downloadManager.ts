@@ -1,9 +1,14 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import * as MediaLibrary from 'expo-media-library';
+import {
+  requestMediaLibraryPermissions,
+  checkMediaLibraryPermissions,
+  saveToMediaLibrary,
+} from './mediaLibraryAdapter';
 import { DownloadItem, DownloadProgress, DownloadStatus } from '../../types/download';
 import { MediaItem, MediaMetadata } from '../../types/media';
 import { generateSafeFileName } from '../retrieval/urlValidator';
-import { historyStorage } from '../storage/historyStorage';
+import { settingsStorage } from '../storage/settingsStorage';
+import { resolveBackendUrl } from '../../utils/networkUtils';
 
 export interface ActiveDownloadHandle {
   id: string;
@@ -18,25 +23,14 @@ export class DownloadManager {
    * Request media library permissions for saving media to gallery on Android
    */
   async requestStoragePermission(): Promise<boolean> {
-    try {
-      const response = await MediaLibrary.requestPermissionsAsync(true);
-      return response.granted;
-    } catch (err) {
-      console.warn('Error requesting storage permission:', err);
-      return false;
-    }
+    return requestMediaLibraryPermissions();
   }
 
   /**
    * Check if storage permission is currently granted
    */
   async checkStoragePermission(): Promise<boolean> {
-    try {
-      const permissions = await MediaLibrary.getPermissionsAsync(true);
-      return permissions.granted;
-    } catch {
-      return false;
-    }
+    return checkMediaLibraryPermissions();
   }
 
   /**
@@ -76,7 +70,15 @@ export class DownloadManager {
       counter++;
     }
 
-    const downloadUrl = selectedItem.url;
+    let downloadUrl = selectedItem.url;
+    if (downloadUrl && downloadUrl.startsWith('/')) {
+      const settings = await settingsStorage.getSettings();
+      const base = resolveBackendUrl(settings.customBackendEndpoint);
+      downloadUrl = `${base}${downloadUrl}`;
+    } else if (downloadUrl) {
+      downloadUrl = resolveBackendUrl(downloadUrl);
+    }
+
     if (!downloadUrl) {
       throw new Error('No valid download URL provided for this media item.');
     }
@@ -152,7 +154,7 @@ export class DownloadManager {
         try {
           const hasPermission = await this.requestStoragePermission();
           if (hasPermission) {
-            await MediaLibrary.saveToLibraryAsync(result.uri);
+            await saveToMediaLibrary(result.uri);
             savedToGallery = true;
           }
         } catch (mediaLibErr) {
@@ -174,9 +176,6 @@ export class DownloadManager {
         status: 'completed',
         savedToGallery,
       };
-
-      // Persist to history
-      await historyStorage.addHistoryItem(completedItem);
 
       onStatusChange?.('completed');
       return completedItem;

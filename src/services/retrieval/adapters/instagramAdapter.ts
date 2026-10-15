@@ -1,5 +1,6 @@
 import { MediaProviderAdapter, RetrievalConfig } from '../types';
 import { MediaMetadata, RetrievalResult, MediaItem } from '../../../types/media';
+import { resolveBackendUrl } from '../../../utils/networkUtils';
 
 export class InstagramAdapter implements MediaProviderAdapter {
   readonly platform = 'instagram' as const;
@@ -27,91 +28,133 @@ export class InstagramAdapter implements MediaProviderAdapter {
 
     const isStory = url.toLowerCase().includes('/stories/');
 
-    // 1. If user configured a custom backend service endpoint (e.g. self-hosted downloader proxy, RapidAPI server)
-    if (config?.backendEndpoint) {
-      return this.fetchFromCustomBackend(mediaId, url, config, isStory);
+    // Stories cannot be retrieved anonymously
+    if (isStory) {
+      return {
+        success: false,
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Instagram Stories require authenticated account access and cannot be downloaded anonymously.',
+          details: 'Stories are ephemeral (24-hour) media protected by Instagram user login authentication.',
+        },
+      };
     }
 
-    // 2. If user configured a Meta Graph API access token or RapidAPI key
+    // Determine target backend endpoint (auto-maps localhost to LAN IP on mobile):
+    const effectiveBackendEndpoint = config?.backendEndpoint?.trim()
+      ? resolveBackendUrl(config.backendEndpoint)
+      : undefined;
+
+    if (effectiveBackendEndpoint) {
+      return this.fetchFromCustomBackend(url, effectiveBackendEndpoint, config?.apiKey);
+    }
+
+    // Direct API key fallback if configured without backend
     if (config?.apiKey) {
       return this.fetchWithApiKey(url, config.apiKey);
     }
 
-    // 3. Honest boundary: Meta does not provide an open, unauthenticated public media download endpoint
+    // Boundary: Guide user to configure backend or start server
     return {
       success: false,
       error: {
         code: 'API_KEY_REQUIRED',
         requiresConfiguration: true,
-        message: 'Instagram media retrieval requires an authorized backend service or API key.',
-        details: isStory
-          ? 'Instagram Stories require authenticated account access. Please configure an authorized backend service in Settings.'
-          : 'Meta restricts unauthenticated direct media downloads. You can connect your self-hosted backend or API key in Settings > API Configuration.',
+        message: 'Instagram media retrieval requires the ChimtuDrop backend service.',
+        details:
+          'Please start the ChimtuDrop backend server ("npm run backend") and ensure your phone is connected on the same Wi-Fi.',
       },
     };
   }
 
   private async fetchFromCustomBackend(
-    mediaId: string,
     url: string,
-    config: RetrievalConfig,
-    isStory: boolean
+    backendEndpoint: string,
+    apiKey?: string
   ): Promise<RetrievalResult> {
+    const base = backendEndpoint.replace(/\/$/, '');
+    const endpoint = `${base}/api/extract`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
-      const endpoint = `${config.backendEndpoint?.replace(/\/$/, '')}/instagram?id=${mediaId}&url=${encodeURIComponent(url)}&isStory=${isStory}`;
       const res = await fetch(endpoint, {
-        headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
+        body: JSON.stringify({ url }),
+        signal: controller.signal,
       });
 
+      const responseJson = await res.json().catch(() => null);
+
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
+        if (responseJson && responseJson.error) {
           return {
             success: false,
-            error: {
-              code: 'AUTHENTICATION_REQUIRED',
-              message: 'Authentication failed for the configured backend service.',
-            },
+            error: responseJson.error,
           };
         }
-        if (res.status === 404) {
-          return {
-            success: false,
-            error: {
-              code: 'EXPIRED_OR_DELETED',
-              message: 'The requested Instagram post or Story was not found or has expired.',
-            },
-          };
-        }
+
+        const detail = responseJson?.detail || `Server returned HTTP ${res.status}`;
         return {
           success: false,
           error: {
-            code: 'PROVIDER_UNAVAILABLE',
-            message: `Instagram retrieval backend returned status ${res.status}.`,
+            code: res.status === 400 ? 'INVALID_URL' : res.status === 403 ? 'AUTHENTICATION_REQUIRED' : 'PROVIDER_UNAVAILABLE',
+            message: detail,
           },
         };
       }
 
-      const data = await res.json();
+      if (!responseJson || !responseJson.items || responseJson.items.length === 0) {
+        return {
+          success: false,
+          error: {
+            code: 'PROVIDER_UNAVAILABLE',
+            message: 'Backend succeeded but returned empty media content.',
+          },
+        };
+      }
+
       return {
         success: true,
-        data,
+        data: responseJson as MediaMetadata,
       };
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return {
+          success: false,
+          error: {
+            code: 'NETWORK_ERROR',
+            message: `Connection to backend at ${backendEndpoint} timed out.`,
+            details: 'Ensure the server is running ("npm run backend") and accessible on your local network.',
+            requiresConfiguration: false,
+          },
+        };
+      }
+
       return {
         success: false,
         error: {
           code: 'NETWORK_ERROR',
-          message: 'Unable to connect to the configured Instagram backend service.',
-          details: err?.message,
+          message: `Unable to connect to ChimtuDrop backend at ${backendEndpoint}.`,
+          details: 'Please ensure your computer and phone are connected to the same Wi-Fi network and "npm run backend" is running.',
+          requiresConfiguration: false,
         },
       };
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
   private async fetchWithApiKey(url: string, apiKey: string): Promise<RetrievalResult> {
     try {
       // Official Meta Graph API oEmbed for Instagram
-      const oembedUrl = `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${apiKey}`;
+      const oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${apiKey}`;
       const res = await fetch(oembedUrl);
 
       if (!res.ok) {
@@ -139,7 +182,7 @@ export class InstagramAdapter implements MediaProviderAdapter {
         canonicalUrl: url,
         platform: 'instagram',
         mediaType: 'image',
-        title: data.title || `Instagram post by @${data.author_name || 'user'}`,
+        title: data.title || 'Instagram Photo',
         author: {
           username: data.author_name || 'user',
           displayName: data.author_name,

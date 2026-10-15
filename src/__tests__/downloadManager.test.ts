@@ -39,6 +39,11 @@ jest.mock('expo-file-system/legacy', () => ({
 }));
 
 // Mock MediaLibrary
+jest.mock('expo-media-library/legacy', () => ({
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  getPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  saveToLibraryAsync: jest.fn(async () => {}),
+}));
 jest.mock('expo-media-library', () => ({
   requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
   getPermissionsAsync: jest.fn(async () => ({ granted: true })),

@@ -1,16 +1,21 @@
 {
   "expo": {
-    "name": "ClipDrop",
-    "slug": "clipdrop",
+    "name": "ChimtuDrop",
+    "slug": "chimtudrop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F4F0FA"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.clipdrop.downloader",
+      "package": "com.chimtudrop.downloader",
       "adaptiveIcon": {
         "backgroundColor": "#F4F0FA",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -34,12 +39,13 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow ClipDrop to save downloaded photos to your gallery.",
-          "savePhotosPermission": "Allow ClipDrop to save downloaded photos to your gallery.",
+          "photosPermission": "Allow ChimtuDrop to save downloaded photos to your gallery.",
+          "savePhotosPermission": "Allow ChimtuDrop to save downloaded photos to your gallery.",
           "isAccessMediaLocationEnabled": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-video"
     ]
   }
 }

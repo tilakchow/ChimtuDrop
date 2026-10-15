@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TextInput,
   ScrollView,
   StyleSheet,
@@ -16,8 +15,16 @@ import { ClayButton } from '../components/common/ClayButton';
 import { Badge } from '../components/common/Badge';
 import { CarouselSelector } from '../components/preview/CarouselSelector';
 import { QualityPicker } from '../components/preview/QualityPicker';
+import { MediaVideoPreview } from '../components/preview/MediaVideoPreview';
 import { MediaMetadata, MediaItem, QualityOption } from '../types/media';
 import { formatBytes } from '../utils/fileUtils';
+import { generateCleanFilename } from '../utils/filenameUtils';
+
+const getCleanTitle = (rawTitle?: string, platform?: string): string => {
+  if (!rawTitle) return `${platform ? platform.toUpperCase() : 'Media'} Stream`;
+  const cleaned = rawTitle.replace(/^(video|post|reel|tweet)\s+by\s+[^:\n_]+/i, '').trim();
+  return cleaned.length > 2 ? cleaned : `${platform ? platform.toUpperCase() : 'Media'} Stream`;
+};
 
 interface MediaPreviewScreenProps {
   metadata: MediaMetadata;
@@ -44,12 +51,9 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const activeItem = metadata.items[activeItemIndex] || metadata.items[0];
 
-  // Editable filename
-  const [customFilename, setCustomFilename] = useState(
-    metadata.title
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .replace(/_+/g, '_')
-      .slice(0, 35) || `${metadata.platform}_media`
+  // Editable clean sensible filename using media title or timestamp
+  const [customFilename, setCustomFilename] = useState(() =>
+    generateCleanFilename(metadata.title, activeItem?.type || 'video')
   );
 
   // Selected quality option (if item has multiple qualities)
@@ -79,10 +83,10 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
       const itemsToDownload = selectedIndices.map((i) => metadata.items[i]);
       onStartBatchDownload(itemsToDownload, customFilename);
     } else {
-      // If quality is selected, update item URL
+      // If quality is selected, update item URL safely
       const itemToDownload: MediaItem = {
         ...activeItem,
-        url: selectedQuality ? selectedQuality.url : activeItem.url,
+        url: selectedQuality?.url || (selectedQuality as any)?.direct_url || activeItem.url,
       };
       onStartDownload(itemToDownload, customFilename);
     }
@@ -107,74 +111,27 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
             <Badge mediaType={metadata.mediaType} variant="mediaType" />
           </View>
 
-          {/* Media Visual Preview */}
-          <View
-            style={[
-              styles.previewContainer,
-              {
-                backgroundColor: colors.inset,
-                borderRadius: borderRadius.md,
-                marginTop: spacing.md,
-              },
-            ]}
-          >
-            {displayThumbnail ? (
-              <Image
-                source={{ uri: displayThumbnail }}
-                style={[styles.previewImage, { borderRadius: borderRadius.md }]}
-                resizeMode="contain"
-              />
-            ) : (
-              <View style={styles.placeholderContainer}>
-                <Ionicons
-                  name={activeItem?.type === 'video' ? 'videocam-outline' : 'image-outline'}
-                  size={54}
-                  color={colors.primary}
-                />
-                <Text style={[typography.body, { color: colors.textSecondary, marginTop: 8 }]}>
-                  Preview unavailable from server
-                </Text>
-              </View>
-            )}
-
-            {activeItem?.type === 'video' && (
-              <View style={styles.videoBadge}>
-                <Ionicons name="play" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
-                <Text style={[typography.captionBold, { color: '#FFFFFF' }]}>Video</Text>
-              </View>
-            )}
+          {/* Real Playable Video or Clean Thumbnail Fallback */}
+          <View style={{ marginTop: spacing.md }}>
+            <MediaVideoPreview
+              previewUrl={activeItem?.previewUrl}
+              thumbnailUrl={displayThumbnail}
+              mediaType={activeItem?.type}
+              durationSeconds={metadata.durationSeconds}
+              aspectRatio={
+                activeItem?.width && activeItem?.height
+                  ? activeItem.width / activeItem.height
+                  : 16 / 9
+              }
+            />
           </View>
-
-          {/* Author info if available */}
-          {metadata.author && (
-            <View style={[styles.authorRow, { marginTop: spacing.md }]}>
-              {metadata.author.avatarUrl ? (
-                <Image
-                  source={{ uri: metadata.author.avatarUrl }}
-                  style={[styles.avatar, { borderRadius: 14 }]}
-                />
-              ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surfaceRaised, borderRadius: 14 }]}>
-                  <Ionicons name="person" size={14} color={colors.primary} />
-                </View>
-              )}
-              <View style={{ marginLeft: spacing.sm, flex: 1 }}>
-                <Text numberOfLines={1} style={[typography.headline, { color: colors.text }]}>
-                  {metadata.author.displayName || metadata.author.username}
-                </Text>
-                <Text style={[typography.caption, { color: colors.textMuted }]}>
-                  @{metadata.author.username}
-                </Text>
-              </View>
-            </View>
-          )}
 
           {/* Title / Caption */}
           <Text
-            numberOfLines={3}
-            style={[typography.body, { color: colors.text, marginTop: spacing.sm }]}
+            numberOfLines={2}
+            style={[typography.body, { color: colors.textSecondary, marginTop: spacing.md }]}
           >
-            {metadata.title}
+            {getCleanTitle(metadata.title, metadata.platform)}
           </Text>
 
           {/* Carousel Selector if multiple items */}
@@ -188,14 +145,14 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
             />
           )}
 
-          {/* Quality Picker if available */}
-          {activeItem?.qualities && activeItem.qualities.length > 0 && (
+          {/* Quality Picker: only displayed if there are genuinely multiple quality options to choose from */}
+          {activeItem?.qualities && activeItem.qualities.length > 1 ? (
             <QualityPicker
               qualities={activeItem.qualities}
               selectedQualityId={selectedQuality?.id}
               onSelectQuality={(q) => setSelectedQuality(q)}
             />
-          )}
+          ) : null}
 
           {/* Filename & Details Card */}
           <View style={[styles.fileDetailsSection, { marginTop: spacing.lg }]}>
@@ -220,9 +177,6 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
                 placeholderTextColor={colors.textMuted}
                 style={[typography.body, styles.filenameInput, { color: colors.text }]}
               />
-              <Text style={[typography.captionBold, { color: colors.textSecondary }]}>
-                .{activeItem?.type === 'video' ? 'mp4' : 'jpg'}
-              </Text>
             </View>
 
             {knownFileSize ? (
@@ -239,11 +193,11 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
           <ClayButton
             title={
               isCarousel && selectedIndices.length > 1
-                ? `Download ${selectedIndices.length} Items`
-                : 'Download Media'
+                ? `DOWNLOAD ${selectedIndices.length} ITEMS`
+                : 'DOWNLOAD BEST QUALITY'
             }
             onPress={handleDownload}
-            icon={<Ionicons name="download" size={18} color="#FFFFFF" />}
+            icon={<Ionicons name="arrow-down-circle" size={20} color="#FFFFFF" />}
             size="lg"
             style={{ marginTop: spacing.xl }}
           />

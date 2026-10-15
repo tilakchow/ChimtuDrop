@@ -10,6 +10,8 @@ export interface ValidatedUrl {
 
 const INSTAGRAM_REGEX = /^(https?:\/\/)?(www\.)?instagram\.com\/(p|reel|reels|tv|stories)\/([a-zA-Z0-9_\-\.]+)/i;
 const X_TWITTER_REGEX = /^(https?:\/\/)?(www\.)?(twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)/i;
+const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+const FACEBOOK_REGEX = /^(https?:\/\/)?(www\.|m\.|web\.)?(facebook\.com\/(?:watch\/?\?v=|reel\/|.*\/videos\/|share\/(?:v|r)\/)|fb\.watch\/)([0-9a-zA-Z_-]+)/i;
 const DIRECT_MEDIA_REGEX = /\.(mp4|m4v|mov|webm|jpg|jpeg|png|webp|gif)(\?.*)?$/i;
 
 /**
@@ -76,6 +78,38 @@ export function validateMediaUrl(input: string): ValidatedUrl {
     };
   }
 
+  // Check YouTube
+  const ytMatch = fullUrl.match(YOUTUBE_REGEX);
+  if (ytMatch) {
+    const videoId = ytMatch[4];
+    const isShorts = fullUrl.includes('/shorts/');
+    const canonical = isShorts
+      ? `https://www.youtube.com/shorts/${videoId}`
+      : `https://www.youtube.com/watch?v=${videoId}`;
+    return {
+      isValid: true,
+      platform: 'youtube',
+      canonicalUrl: canonical,
+      mediaId: videoId,
+    };
+  }
+
+  // Check Facebook
+  const fbMatch = fullUrl.match(FACEBOOK_REGEX);
+  if (fbMatch) {
+    const mediaId = fbMatch[4];
+    const isReel = fullUrl.includes('/reel/');
+    const canonical = isReel
+      ? `https://www.facebook.com/reel/${mediaId}/`
+      : `https://www.facebook.com/watch/?v=${mediaId}`;
+    return {
+      isValid: true,
+      platform: 'facebook',
+      canonicalUrl: canonical,
+      mediaId,
+    };
+  }
+
   // Check Direct Media Link
   if (DIRECT_MEDIA_REGEX.test(parsed.pathname) || DIRECT_MEDIA_REGEX.test(fullUrl)) {
     return {
@@ -88,7 +122,7 @@ export function validateMediaUrl(input: string): ValidatedUrl {
 
   return {
     isValid: false,
-    error: 'Unsupported link. ClipDrop supports Instagram, X (Twitter), and direct media URLs.',
+    error: 'Unsupported link. ChimtuDrop supports Instagram, X (Twitter), YouTube, Facebook, and direct media URLs.',
   };
 }
 
@@ -96,7 +130,8 @@ export function validateMediaUrl(input: string): ValidatedUrl {
  * Extract clean, human-readable filename from a media URL or title
  */
 export function generateSafeFileName(title: string, platform: SupportedPlatform, extension: string): string {
-  const sanitized = title
+  const cleanedTitle = title.replace(/^(video|post|reel|tweet)\s+by\s+[^:\n_]+/i, '').trim();
+  const sanitized = (cleanedTitle || title)
     .toLowerCase()
     .replace(/[^a-z0-9_-]/g, '_')
     .replace(/_+/g, '_')
@@ -106,5 +141,5 @@ export function generateSafeFileName(title: string, platform: SupportedPlatform,
   const base = sanitized || `${platform}_media`;
   const cleanExt = extension.replace(/^\./, '');
   const timestamp = Date.now().toString().slice(-6);
-  return `clipdrop_${base}_${timestamp}.${cleanExt}`;
+  return `${base}_${timestamp}.${cleanExt}`;
 }

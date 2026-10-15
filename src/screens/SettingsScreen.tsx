@@ -17,7 +17,6 @@ import { ClayCard } from '../components/common/ClayCard';
 import { ClayButton } from '../components/common/ClayButton';
 import { ThemeMode, AppSettings, DEFAULT_SETTINGS } from '../types/settings';
 import { settingsStorage } from '../services/storage/settingsStorage';
-import { historyStorage } from '../services/storage/historyStorage';
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -30,6 +29,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   const [backendUrl, setBackendUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testStatus, setTestStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -45,33 +46,72 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
     setSettings(updated);
   };
 
+  const handleTestConnection = async () => {
+    const trimmed = backendUrl.trim();
+    if (!trimmed) {
+      Alert.alert('Backend URL Required', 'Please enter a backend server URL to test (e.g. http://192.168.88.12:8000).');
+      return;
+    }
+
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      Alert.alert('Invalid URL', 'Backend URL must start with http:// or https://');
+      return;
+    }
+
+    setIsTesting(true);
+    setTestStatus(null);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const targetEndpoint = `${trimmed.replace(/\/$/, '')}/health`;
+      const res = await fetch(targetEndpoint, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const engineStatus = data.ytdlp_available ? 'yt-dlp Ready' : 'Online';
+
+      setTestStatus({
+        success: true,
+        message: `Connected successfully! (${engineStatus} • FFmpeg: ${data.ffmpeg_available ? 'Yes' : 'No'})`,
+      });
+    } catch (err: any) {
+      setTestStatus({
+        success: false,
+        message:
+          err.name === 'AbortError'
+            ? 'Connection timed out. Check that "npm run backend" is running on your PC.'
+            : `Connection failed: ${err.message || 'Server unreachable'}. If using a phone, use your PC's Wi-Fi IP (http://192.168.88.12:8000) instead of localhost.`,
+      });
+    } finally {
+      clearTimeout(timeout);
+      setIsTesting(false);
+    }
+  };
+
   const handleSaveApiConfig = async () => {
+    const trimmed = backendUrl.trim();
+    if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      Alert.alert('Invalid URL', 'Backend URL must start with http:// or https:// (e.g. http://localhost:3000)');
+      return;
+    }
+
     const updated = await settingsStorage.updateSettings({
-      customBackendEndpoint: backendUrl.trim() || undefined,
+      customBackendEndpoint: trimmed || undefined,
       customApiKey: apiKey.trim() || undefined,
     });
     setSettings(updated);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
-    Alert.alert('Settings Saved', 'API configuration updated successfully.');
-  };
-
-  const handleClearHistory = () => {
-    Alert.alert(
-      'Clear All History',
-      'This will remove all recorded downloads and cached media files from device storage.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: async () => {
-            await historyStorage.clearHistory();
-            Alert.alert('Success', 'History and cache cleared.');
-          },
-        },
-      ]
-    );
+    Alert.alert('Settings Saved', 'API backend configuration updated successfully.');
   };
 
   const downloadPath = `${FileSystem.documentDirectory}downloads/`;
@@ -150,23 +190,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           </View>
         </ClayCard>
 
-        {/* API & Backend Configuration */}
+        {/* Backend & API Configuration */}
         <ClayCard level="medium" style={{ marginBottom: spacing.md }}>
           <View style={styles.apiHeaderRow}>
             <Text style={[typography.headline, { color: colors.text }]}>
-              Media Retrieval API
+              Media Retrieval Backend
             </Text>
             <View style={[styles.optionalTag, { backgroundColor: colors.surfaceRaised }]}>
-              <Text style={[typography.captionBold, { color: colors.primary, fontSize: 10 }]}>Configurable</Text>
+              <Text style={[typography.captionBold, { color: colors.primary, fontSize: 10 }]}>Required for IG</Text>
             </View>
           </View>
 
           <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: spacing.md }]}>
-            For Instagram Reels, Stories, and authenticated X posts, you can connect your private server endpoint or API key.
+            ChimtuDrop connects to your free FastAPI + yt-dlp backend. Supports Instagram, YouTube, X (Twitter), Facebook, and Direct media. No paid API keys or subscriptions required.
           </Text>
 
           <Text style={[typography.captionBold, { color: colors.textSecondary, marginBottom: 4 }]}>
-            Custom Backend URL (optional):
+            Backend Server URL:
           </Text>
           <View
             style={[
@@ -176,8 +216,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           >
             <TextInput
               value={backendUrl}
-              onChangeText={setBackendUrl}
-              placeholder="https://your-downloader-api.example.com"
+              onChangeText={(val) => {
+                setBackendUrl(val);
+                setTestStatus(null);
+              }}
+              placeholder="http://localhost:8000 or https://your-app.onrender.com"
               placeholderTextColor={colors.textMuted}
               style={[typography.body, { color: colors.text }]}
               autoCapitalize="none"
@@ -185,8 +228,92 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
             />
           </View>
 
+          {/* Quick preset buttons */}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, marginBottom: spacing.sm }}>
+            <Pressable
+              onPress={() => {
+                setBackendUrl('http://192.168.88.12:8000');
+                setTestStatus(null);
+              }}
+              style={({ pressed }) => [
+                styles.presetBtn,
+                { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: borderRadius.sm },
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={[typography.captionBold, { color: '#FFFFFF', fontSize: 11 }]}>
+                📱 Phone Wi-Fi (192.168.88.12)
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                setBackendUrl('http://localhost:8000');
+                setTestStatus(null);
+              }}
+              style={({ pressed }) => [
+                styles.presetBtn,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.border, borderRadius: borderRadius.sm },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={[typography.captionBold, { color: colors.textSecondary, fontSize: 11 }]}>
+                💻 Web Browser (Localhost)
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Connection Test Feedback */}
+          {testStatus && (
+            <View
+              style={[
+                styles.testStatusBox,
+                {
+                  backgroundColor: testStatus.success ? '#E8F5E9' : '#FFEBEE',
+                  borderColor: testStatus.success ? '#4CAF50' : '#F44336',
+                  borderRadius: borderRadius.md,
+                },
+              ]}
+            >
+              <Ionicons
+                name={testStatus.success ? 'checkmark-circle' : 'alert-circle'}
+                size={16}
+                color={testStatus.success ? '#2E7D32' : '#C62828'}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  typography.caption,
+                  { color: testStatus.success ? '#2E7D32' : '#C62828', flex: 1 },
+                ]}
+              >
+                {testStatus.message}
+              </Text>
+            </View>
+          )}
+
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: spacing.sm }}>
+            <ClayButton
+              title={isTesting ? 'Testing...' : 'Test Connection'}
+              onPress={handleTestConnection}
+              variant="ghost"
+              size="sm"
+              loading={isTesting}
+              style={{ flex: 1 }}
+              icon={<Ionicons name="flash-outline" size={15} color={colors.primary} />}
+            />
+            <ClayButton
+              title={isSaved ? 'Saved!' : 'Save Settings'}
+              onPress={handleSaveApiConfig}
+              variant="secondary"
+              size="sm"
+              style={{ flex: 1 }}
+            />
+          </View>
+
+          {/* Optional Bearer token for protected backends */}
           <Text style={[typography.captionBold, { color: colors.textSecondary, marginTop: spacing.md, marginBottom: 4 }]}>
-            API / Access Token (optional):
+            Authorization Token (optional):
           </Text>
           <View
             style={[
@@ -197,7 +324,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
             <TextInput
               value={apiKey}
               onChangeText={setApiKey}
-              placeholder="Bearer token or API key..."
+              placeholder="Bearer token (if your backend requires auth)..."
               placeholderTextColor={colors.textMuted}
               secureTextEntry
               style={[typography.body, { color: colors.text }]}
@@ -205,14 +332,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
               autoCorrect={false}
             />
           </View>
-
-          <ClayButton
-            title={isSaved ? 'Saved!' : 'Save API Settings'}
-            onPress={handleSaveApiConfig}
-            variant="secondary"
-            size="sm"
-            style={{ marginTop: spacing.md }}
-          />
+          <Text style={[typography.caption, { color: colors.textMuted, marginTop: 4 }]}>
+            Leave blank if your local backend does not require a custom Bearer token.
+          </Text>
         </ClayCard>
 
         {/* Data & Privacy */}
@@ -220,17 +342,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           <Text style={[typography.headline, { color: colors.text, marginBottom: spacing.sm }]}>
             Data & Privacy
           </Text>
-          <Text style={[typography.body, { color: colors.textSecondary, marginBottom: spacing.md }]}>
-            ClipDrop stores all history and files exclusively on your device. No user tracking, analytics, or background telemetry are collected.
+          <Text style={[typography.body, { color: colors.textSecondary }]}>
+            ChimtuDrop saves media directly to your phone gallery. No browsing history, tracking, analytics, or background telemetry are collected.
           </Text>
-
-          <ClayButton
-            title="Clear Download History & Cache"
-            onPress={handleClearHistory}
-            variant="danger"
-            size="sm"
-            icon={<Ionicons name="trash-outline" size={16} color="#FFFFFF" />}
-          />
         </ClayCard>
 
         {/* About & Version */}
@@ -238,7 +352,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           <View style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
             <Ionicons name="shield-checkmark" size={28} color={colors.primary} />
             <Text style={[typography.headline, { color: colors.text, marginTop: 6 }]}>
-              ClipDrop v1.0.0
+              ChimtuDrop v1.0.0
             </Text>
             <Text style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}>
               Lightweight Social Media Media Downloader
@@ -289,5 +403,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
+  },
+  presetBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+  },
+  testStatusBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 4,
   },
 });

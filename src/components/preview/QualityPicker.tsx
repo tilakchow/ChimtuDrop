@@ -23,8 +23,8 @@ export const QualityPicker: React.FC<QualityPickerProps> = ({
 
   return (
     <View style={{ marginTop: spacing.md }}>
-      <Text style={[typography.headline, { color: colors.text, marginBottom: spacing.sm }]}>
-        Select Quality / Format
+      <Text style={[typography.monoLabel, { color: colors.textSecondary, marginBottom: spacing.sm, fontSize: 11 }]}>
+        AVAILABLE FORMATS
       </Text>
       <View style={styles.list}>
         {qualities.map((q) => {

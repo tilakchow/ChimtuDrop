@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
 import {
-  SafeAreaView,
-  StatusBar as RNStatusBar,
   StyleSheet,
   View,
-  Platform,
+  LogBox,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+
+import { useFonts } from 'expo-font';
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+import {
+  SpaceMono_400Regular,
+  SpaceMono_700Bold,
+} from '@expo-google-fonts/space-mono';
+
+// Ignore known informational warnings in Expo Go
+LogBox.ignoreLogs([
+  'Due to changes in Androids permission requirements, Expo Go can no longer provide full access to the media library',
+  'SafeAreaView has been deprecated',
+]);
 import { HomeScreen } from './src/screens/HomeScreen';
 import { MediaPreviewScreen } from './src/screens/MediaPreviewScreen';
 import { DownloadManagerScreen } from './src/screens/DownloadManagerScreen';
-import { HistoryScreen } from './src/screens/HistoryScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { MediaMetadata, MediaItem } from './src/types/media';
-import { DownloadItem } from './src/types/download';
 
 type ScreenState =
   | { name: 'home' }
   | { name: 'preview'; metadata: MediaMetadata }
   | { name: 'download'; metadata: MediaMetadata; selectedItem: MediaItem; customFilename?: string }
-  | { name: 'history' }
   | { name: 'settings' };
 
 const MainNavigator: React.FC = () => {
@@ -33,7 +47,6 @@ const MainNavigator: React.FC = () => {
         styles.safeArea,
         {
           backgroundColor: colors.background,
-          paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight || 24 : 0,
         },
       ]}
     >
@@ -41,8 +54,6 @@ const MainNavigator: React.FC = () => {
 
       {currentScreen.name === 'home' && (
         <HomeScreen
-          onMediaFetched={(metadata) => setCurrentScreen({ name: 'preview', metadata })}
-          onNavigateToHistory={() => setCurrentScreen({ name: 'history' })}
           onNavigateToSettings={() => setCurrentScreen({ name: 'settings' })}
         />
       )}
@@ -79,16 +90,6 @@ const MainNavigator: React.FC = () => {
           selectedItem={currentScreen.selectedItem}
           customFilename={currentScreen.customFilename}
           onBackToHome={() => setCurrentScreen({ name: 'home' })}
-          onNavigateToHistory={() => setCurrentScreen({ name: 'history' })}
-        />
-      )}
-
-      {currentScreen.name === 'history' && (
-        <HistoryScreen
-          onBack={() => setCurrentScreen({ name: 'home' })}
-          onSelectItem={(item: DownloadItem) => {
-            // Optional: View completed item in download manager or preview
-          }}
         />
       )}
 
@@ -100,10 +101,25 @@ const MainNavigator: React.FC = () => {
 };
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ThemeProvider>
-      <MainNavigator />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <MainNavigator />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

@@ -1,5 +1,7 @@
 import { InstagramAdapter } from '../services/retrieval/adapters/instagramAdapter';
 import { XAdapter } from '../services/retrieval/adapters/xAdapter';
+import { YouTubeAdapter } from '../services/retrieval/adapters/youtubeAdapter';
+import { FacebookAdapter } from '../services/retrieval/adapters/facebookAdapter';
 import { DirectMediaAdapter } from '../services/retrieval/adapters/directMediaAdapter';
 import { MediaService } from '../services/retrieval/mediaService';
 
@@ -50,6 +52,36 @@ describe('Media Retrieval Adapters', () => {
     });
   });
 
+  describe('YouTube Adapter', () => {
+    const adapter = new YouTubeAdapter();
+
+    it('identifies YouTube watch and shorts links', () => {
+      expect(adapter.canHandle('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+      expect(adapter.canHandle('https://youtu.be/dQw4w9WgXcQ')).toBe(true);
+      expect(adapter.canHandle('https://www.youtube.com/shorts/5kM-i30jVls')).toBe(true);
+      expect(adapter.canHandle('https://facebook.com/reel/123')).toBe(false);
+    });
+
+    it('extracts YouTube video IDs correctly', () => {
+      expect(adapter.extractId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+      expect(adapter.extractId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    });
+  });
+
+  describe('Facebook Adapter', () => {
+    const adapter = new FacebookAdapter();
+
+    it('identifies Facebook reel and watch links', () => {
+      expect(adapter.canHandle('https://www.facebook.com/reel/101587654321/')).toBe(true);
+      expect(adapter.canHandle('https://fb.watch/abcd1234ef/')).toBe(true);
+      expect(adapter.canHandle('https://youtube.com/watch?v=123')).toBe(false);
+    });
+
+    it('extracts Facebook media IDs correctly', () => {
+      expect(adapter.extractId('https://www.facebook.com/reel/101587654321/')).toBe('101587654321');
+    });
+  });
+
   describe('MediaService Orchestration', () => {
     const service = new MediaService();
 
@@ -57,7 +89,7 @@ describe('Media Retrieval Adapters', () => {
       const res = await service.fetchMedia('https://unsupported-site.com/video/123');
       expect(res.success).toBe(false);
       expect(res.error?.code).toBe('INVALID_URL');
-      expect(res.error?.message).toContain('supports Instagram, X (Twitter), and direct media');
+      expect(res.error?.message).toContain('supports Instagram, X (Twitter), YouTube, Facebook');
     });
   });
 });

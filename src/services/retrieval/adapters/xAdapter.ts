@@ -25,12 +25,15 @@ export class XAdapter implements MediaProviderAdapter {
       };
     }
 
-    // 1. If user has configured a custom backend or RapidAPI endpoint
+    // 1. If user has configured a custom backend, try it first
     if (config?.backendEndpoint) {
-      return this.fetchFromCustomBackend(tweetId, url, config);
+      const backendRes = await this.fetchFromCustomBackend(tweetId, url, config);
+      if (backendRes.success) {
+        return backendRes;
+      }
     }
 
-    // 2. Fetch using official Twitter Syndication embed endpoint
+    // 2. Fetch using official Twitter Syndication embed endpoint (always works for public tweets)
     try {
       const syndicationUrl = `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&lang=en`;
       const res = await fetch(syndicationUrl, {
@@ -162,7 +165,7 @@ export class XAdapter implements MediaProviderAdapter {
         canonicalUrl: `https://x.com/${data.user?.screen_name || 'user'}/status/${tweetId}`,
         platform: 'x',
         mediaType: overallType,
-        title: data.text ? data.text.slice(0, 50).replace(/\n/g, ' ') : `X post by @${data.user?.screen_name || 'user'}`,
+        title: data.text ? data.text.slice(0, 50).replace(/\n/g, ' ') : 'X Media',
         author: {
           username: data.user?.screen_name || 'unknown',
           displayName: data.user?.name,
@@ -190,24 +193,30 @@ export class XAdapter implements MediaProviderAdapter {
   }
 
   private async fetchFromCustomBackend(
-    tweetId: string,
+    _tweetId: string,
     url: string,
     config: RetrievalConfig
   ): Promise<RetrievalResult> {
     try {
-      const endpoint = `${config.backendEndpoint?.replace(/\/$/, '')}/x?id=${tweetId}&url=${encodeURIComponent(url)}`;
+      const base = config.backendEndpoint?.replace(/\/$/, '');
+      const endpoint = `${base}/api/extract`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
       const res = await fetch(endpoint, {
-        headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+        },
+        body: JSON.stringify({ url }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (!res.ok) {
-        return {
-          success: false,
-          error: {
-            code: 'PROVIDER_UNAVAILABLE',
-            message: `Custom backend returned HTTP ${res.status}.`,
-          },
-        };
+        return { success: false };
       }
 
       const data = await res.json();
@@ -215,15 +224,8 @@ export class XAdapter implements MediaProviderAdapter {
         success: true,
         data,
       };
-    } catch (err: any) {
-      return {
-        success: false,
-        error: {
-          code: 'NETWORK_ERROR',
-          message: 'Failed to communicate with custom backend service.',
-          details: err?.message,
-        },
-      };
+    } catch {
+      return { success: false };
     }
   }
 }

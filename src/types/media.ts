@@ -1,4 +1,4 @@
-export type SupportedPlatform = 'instagram' | 'x' | 'direct';
+export type SupportedPlatform = 'instagram' | 'x' | 'youtube' | 'facebook' | 'direct';
 
 export type MediaType = 'video' | 'image' | 'carousel';
 
@@ -18,6 +18,7 @@ export interface MediaItem {
   type: 'video' | 'image';
   url: string;
   thumbnailUrl?: string;
+  previewUrl?: string;
   width?: number;
   height?: number;
   fileSizeBytes?: number;

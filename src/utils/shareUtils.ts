@@ -15,7 +15,7 @@ export async function shareDownloadedFile(fileUri: string, mimeType?: string): P
 
     await Sharing.shareAsync(fileUri, {
       mimeType: mimeType || (fileUri.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg'),
-      dialogTitle: 'Share via ClipDrop',
+      dialogTitle: 'Share via ChimtuDrop',
     });
 
     return true;

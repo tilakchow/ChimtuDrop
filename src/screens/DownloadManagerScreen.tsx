@@ -14,7 +14,6 @@ import { MediaMetadata, MediaItem } from '../types/media';
 import { DownloadItem, DownloadProgress, DownloadStatus } from '../types/download';
 import { downloadManager } from '../services/download/downloadManager';
 import { settingsStorage } from '../services/storage/settingsStorage';
-import { shareDownloadedFile } from '../utils/shareUtils';
 import { formatBytes } from '../utils/fileUtils';
 
 interface DownloadManagerScreenProps {
@@ -22,7 +21,6 @@ interface DownloadManagerScreenProps {
   selectedItem: MediaItem;
   customFilename?: string;
   onBackToHome: () => void;
-  onNavigateToHistory: () => void;
 }
 
 export const DownloadManagerScreen: React.FC<DownloadManagerScreenProps> = ({
@@ -30,7 +28,6 @@ export const DownloadManagerScreen: React.FC<DownloadManagerScreenProps> = ({
   selectedItem,
   customFilename,
   onBackToHome,
-  onNavigateToHistory,
 }) => {
   const { colors, typography, spacing, borderRadius } = useTheme();
 
@@ -102,12 +99,6 @@ export const DownloadManagerScreen: React.FC<DownloadManagerScreenProps> = ({
     setStatus('downloading');
     setErrorMessage(null);
     setRetryCount((prev) => prev + 1);
-  };
-
-  const handleShare = async () => {
-    if (completedItem?.fileUri) {
-      await shareDownloadedFile(completedItem.fileUri);
-    }
   };
 
   const percent = Math.round(progress.fraction * 100);
@@ -265,25 +256,12 @@ export const DownloadManagerScreen: React.FC<DownloadManagerScreenProps> = ({
                 onPress={handleCancel}
               />
             ) : status === 'completed' ? (
-              <View style={{ gap: spacing.sm }}>
-                <ClayButton
-                  title="Share Media"
-                  variant="primary"
-                  onPress={handleShare}
-                  icon={<Ionicons name="share-social-outline" size={18} color="#FFFFFF" />}
-                />
-                <ClayButton
-                  title="View in History"
-                  variant="secondary"
-                  onPress={onNavigateToHistory}
-                  icon={<Ionicons name="time-outline" size={18} color={colors.text} />}
-                />
-                <ClayButton
-                  title="Download Another Link"
-                  variant="ghost"
-                  onPress={onBackToHome}
-                />
-              </View>
+              <ClayButton
+                title="DOWNLOAD ANOTHER LINK"
+                variant="primary"
+                onPress={onBackToHome}
+                icon={<Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />}
+              />
             ) : (
               <View style={{ gap: spacing.sm }}>
                 <ClayButton
