@@ -277,7 +277,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               borderColor: colors.border,
               borderRadius: borderRadius.xl,
               paddingHorizontal: spacing.md,
-              paddingVertical: spacing.sm + 2,
+              paddingVertical: spacing.md,
             },
           ]}
         >
@@ -297,9 +297,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 resizeMode="contain"
               />
             </View>
-            <View style={{ marginLeft: spacing.sm }}>
+            <View style={{ marginLeft: spacing.sm + 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[typography.title1, { color: colors.text, fontSize: 19 }]}>
+                <Text style={[typography.title1, { color: colors.text, fontSize: 18 }]}>
                   CHIMTU <Text style={{ color: colors.primary }}>DROP.</Text>
                 </Text>
                 <View
@@ -317,9 +317,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </Text>
                 </View>
               </View>
-              <Text style={[typography.monoCaption, { color: colors.textSecondary, fontSize: 9.5, letterSpacing: 1.1 }]}>
+              <Text style={[typography.monoCaption, { color: colors.textSecondary, fontSize: 9.5, letterSpacing: 1.1, marginTop: 1 }]}>
                 SAVE FROM THE SCROLL
               </Text>
+
+              {/* Supported Platform Badges directly under SAVE FROM THE SCROLL */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <Text style={[typography.monoLabel, { color: colors.textMuted, fontSize: 8.5, letterSpacing: 0.8 }]}>
+                  SUPPORTED:
+                </Text>
+                <Badge platform="instagram" variant="platform" iconOnly />
+                <Badge platform="x" variant="platform" iconOnly />
+                <Badge platform="youtube" variant="platform" iconOnly />
+                <Badge platform="facebook" variant="platform" iconOnly />
+              </View>
             </View>
           </View>
 
@@ -341,21 +352,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </View>
         </View>
 
-        {/* Platform Supported Badges (Clean Icon-Only Row) */}
-        <View style={[styles.platformRow, { marginTop: spacing.md, marginBottom: 2 }]}>
-          <Text style={[typography.monoLabel, { color: colors.textMuted, marginRight: spacing.sm, fontSize: 10 }]}>
-            SUPPORTED:
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <Badge platform="instagram" variant="platform" iconOnly />
-            <Badge platform="x" variant="platform" iconOnly />
-            <Badge platform="youtube" variant="platform" iconOnly />
-            <Badge platform="facebook" variant="platform" iconOnly />
-          </View>
-        </View>
-
         {/* Main URL Input Card */}
-        <ClayCard level="medium" style={{ marginTop: spacing.sm }}>
+        <ClayCard level="medium" style={{ marginTop: spacing.md }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs }}>
             <Text style={[typography.hero, { color: colors.text, fontSize: 28, letterSpacing: -0.6 }]}>
               DROP A <Text style={{ color: colors.primary }}>LINK.</Text>
@@ -597,16 +595,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 62,
+    height: 62,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
   },
   logoMascot: {
-    width: 32,
-    height: 32,
+    width: 50,
+    height: 50,
   },
   liveIndicator: {
     flexDirection: 'row',
